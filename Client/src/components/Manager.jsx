@@ -21,7 +21,7 @@ function Manager() {
 
   const loadPasswords = async () => {
     try {
-      const res = await fetch("http://localhost:3000/passwords");
+      const res = await fetch("https://keyops-password-manager.onrender.com/passwords");
       const data = await res.json();
       setPasswords(data);
       console.log(`📦 Loaded ${data.length} passwords from MongoDB`);
