@@ -1,93 +1,83 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ObjectId } = require("mongodb");
+const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
-
-/* ================== CONFIG ================== */
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI;
 
-/* ================== MIDDLEWARE ================== */
 app.use(cors());
 app.use(express.json());
 
-/* ================== MONGODB ================== */
-const client = new MongoClient(MONGO_URI);
+// Mongo
+const client = new MongoClient(process.env.MONGO_URI);
 let passwordsCollection;
 
-/* ================== ROUTES ================== */
+/* ================= ROUTES ================= */
 
-// Health check
 app.get("/", (req, res) => {
   res.send("Server is running 🚀");
 });
 
-// Get all passwords
 app.get("/passwords", async (req, res) => {
   try {
     if (!passwordsCollection) {
-      return res.status(503).json({ error: "Database not ready" });
+      return res.status(503).json({ error: "DB not ready" });
     }
 
     const data = await passwordsCollection.find({}).toArray();
     res.json(data);
   } catch (err) {
-    console.error("❌ Fetch error:", err);
+    console.error(err);
     res.status(500).json({ error: "Failed to fetch passwords" });
   }
 });
 
-// Add password
 app.post("/passwords", async (req, res) => {
   try {
+    if (!passwordsCollection) {
+      return res.status(503).json({ error: "DB not ready" });
+    }
+
     const { website, username, password } = req.body;
 
     if (!website || !username || !password) {
       return res.status(400).json({ error: "All fields required" });
     }
 
-    await passwordsCollection.insertOne({ website, username, password });
-    res.json({ success: true });
-  } catch (err) {
-    console.error("❌ Insert error:", err);
-    res.status(500).json({ error: "Failed to save password" });
-  }
-});
-
-// Delete password
-app.delete("/passwords/:id", async (req, res) => {
-  try {
-    await passwordsCollection.deleteOne({
-      _id: new ObjectId(req.params.id),
+    await passwordsCollection.insertOne({
+      website,
+      username,
+      password,
+      createdAt: new Date(),
     });
 
     res.json({ success: true });
   } catch (err) {
-    console.error("❌ Delete error:", err);
-    res.status(500).json({ error: "Failed to delete password" });
+    console.error(err);
+    res.status(500).json({ error: "Failed to save password" });
   }
 });
 
-/* ================== START SERVER AFTER DB ================== */
-async function startServer() {
+/* ================= START SERVER ================= */
+
+async function start() {
   try {
-    console.log("🔌 Connecting to MongoDB...");
+    console.log("Connecting to MongoDB...");
     await client.connect();
 
     const db = client.db("keyops");
     passwordsCollection = db.collection("passwords");
 
-    console.log("✅ MongoDB connected");
+    console.log("MongoDB connected");
 
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`Server running on port ${PORT}`);
     });
   } catch (err) {
-    console.error("❌ MongoDB connection failed:", err.message);
+    console.error("MongoDB failed:", err);
     process.exit(1);
   }
 }
 
-startServer();
+start();
