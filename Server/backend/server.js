@@ -4,44 +4,21 @@ const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
-
-// ✅ IMPORTANT: Render PORT
 const PORT = process.env.PORT || 3000;
 
 // ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
 
-// ===== MONGODB =====
+// ===== ENV CHECK =====
 if (!process.env.MONGO_URI) {
-  console.error("❌ MONGO_URI not found in env");
+  console.error("❌ MONGO_URI missing");
   process.exit(1);
 }
 
+// ===== MONGODB =====
 const client = new MongoClient(process.env.MONGO_URI);
 let passwordsCollection;
-
-// ===== START SERVER AFTER DB CONNECT =====
-async function startServer() {
-  try {
-    console.log("🔄 Connecting to MongoDB...");
-    await client.connect();
-
-    const db = client.db("keyops");
-    passwordsCollection = db.collection("passwords");
-
-    console.log("✅ MongoDB connected");
-
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-  } catch (err) {
-    console.error("❌ MongoDB connection failed:", err);
-    process.exit(1);
-  }
-}
-
-startServer();
 
 // ===== ROUTES =====
 app.get("/", (req, res) => {
@@ -76,3 +53,24 @@ app.post("/passwords", async (req, res) => {
     res.status(500).json({ error: "Failed to save password" });
   }
 });
+
+// ===== START SERVER ONLY AFTER DB CONNECT =====
+async function start() {
+  try {
+    console.log("🔄 Connecting to MongoDB...");
+    await client.connect();
+
+    const db = client.db("keyops");
+    passwordsCollection = db.collection("passwords");
+
+    console.log("✅ MongoDB connected");
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ MongoDB connection failed:", err.message);
+  }
+}
+
+start();
