@@ -1,44 +1,50 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 // ===== MIDDLEWARE =====
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
-
-// ===== ENV CHECK =====
-if (!process.env.MONGO_URI) {
-  console.error("❌ MONGO_URI missing");
-  process.exit(1);
-}
 
 // ===== MONGODB =====
 const client = new MongoClient(process.env.MONGO_URI);
 let passwordsCollection;
 
+async function connectDB() {
+  try {
+    await client.connect();
+    const db = client.db("keyops");
+    passwordsCollection = db.collection("passwords");
+    console.log("✅ MongoDB connected");
+  } catch (err) {
+    console.error("❌ MongoDB connection failed:", err);
+  }
+}
+
+connectDB();
+
 // ===== ROUTES =====
+
+// Health check
 app.get("/", (req, res) => {
   res.send("Server is running 🚀");
 });
 
+// Get all passwords
 app.get("/passwords", async (req, res) => {
-  if (!passwordsCollection) {
-    return res.status(503).json({ error: "Database not ready" });
-  }
-
   try {
     const data = await passwordsCollection.find({}).toArray();
     res.json(data);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to fetch passwords" });
   }
 });
 
+// Add password
 app.post("/passwords", async (req, res) => {
   try {
     const { website, username, password } = req.body;
@@ -54,23 +60,23 @@ app.post("/passwords", async (req, res) => {
   }
 });
 
-// ===== START SERVER ONLY AFTER DB CONNECT =====
-async function start() {
+// Delete password
+app.delete("/passwords/:id", async (req, res) => {
   try {
-    console.log("🔄 Connecting to MongoDB...");
-    await client.connect();
+    const { id } = req.params;
 
-    const db = client.db("keyops");
-    passwordsCollection = db.collection("passwords");
-
-    console.log("✅ MongoDB connected");
-
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+    await passwordsCollection.deleteOne({
+      _id: new ObjectId(id),
     });
-  } catch (err) {
-    console.error("❌ MongoDB connection failed:", err.message);
-  }
-}
 
-start();
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Delete error:", err);
+    res.status(500).json({ error: "Delete failed" });
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
