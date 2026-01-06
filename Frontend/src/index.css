@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .my-container {
+    @apply container mx-auto px-6 py-16;
+  }
+}
+.toast-progress-bar {
+  height: 100%;
+  width: 100%;
+  background-color: #a855f7;
+  animation: toastProgress 3s linear forwards;
+  transform-origin: right;
+}
+
+@keyframes toastProgress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
