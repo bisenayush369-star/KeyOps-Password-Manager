@@ -1,40 +1,47 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ObjectId } = require("mongodb");
-require("dotenv").config();
 
 const app = express();
-const PORT = 3000;
 
-// ===== MIDDLEWARE =====
-app.use(cors({ origin: "*" }));
+// ✅ Render REQUIRED
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
 app.use(express.json());
 
-// ===== MONGODB =====
-const client = new MongoClient(process.env.MONGO_URI);
 let passwordsCollection;
 
-async function connectDB() {
+async function startServer() {
   try {
+    console.log("🔄 Connecting to MongoDB...");
+
+    const client = new MongoClient(process.env.MONGO_URI);
     await client.connect();
+
     const db = client.db("keyops");
     passwordsCollection = db.collection("passwords");
+
     console.log("✅ MongoDB connected");
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+
   } catch (err) {
-    console.error("❌ MongoDB connection failed:", err);
+    console.error("❌ MongoDB connection failed:", err.message);
+    process.exit(1); // IMPORTANT
   }
 }
 
-connectDB();
+startServer();
 
-// ===== ROUTES =====
+// ---------- ROUTES ----------
 
-// Health check
 app.get("/", (req, res) => {
   res.send("Server is running 🚀");
 });
 
-// Get all passwords
 app.get("/passwords", async (req, res) => {
   try {
     const data = await passwordsCollection.find({}).toArray();
@@ -44,39 +51,20 @@ app.get("/passwords", async (req, res) => {
   }
 });
 
-// Add password
 app.post("/passwords", async (req, res) => {
-  try {
-    const { website, username, password } = req.body;
+  const { website, username, password } = req.body;
 
-    if (!website || !username || !password) {
-      return res.status(400).json({ error: "All fields required" });
-    }
-
-    await passwordsCollection.insertOne({ website, username, password });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to save password" });
+  if (!website || !username || !password) {
+    return res.status(400).json({ error: "All fields required" });
   }
+
+  await passwordsCollection.insertOne({ website, username, password });
+  res.json({ success: true });
 });
 
-// Delete password
 app.delete("/passwords/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    await passwordsCollection.deleteOne({
-      _id: new ObjectId(id),
-    });
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("❌ Delete error:", err);
-    res.status(500).json({ error: "Delete failed" });
-  }
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  await passwordsCollection.deleteOne({
+    _id: new ObjectId(req.params.id),
+  });
+  res.json({ success: true });
 });
