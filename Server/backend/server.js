@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ObjectId } = require("mongodb");
+const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
@@ -11,6 +11,11 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 // ===== MONGODB =====
+if (!process.env.MONGO_URI) {
+  console.error("❌ MONGO_URI is missing");
+  process.exit(1);
+}
+
 const client = new MongoClient(process.env.MONGO_URI);
 let passwordsCollection;
 
@@ -18,6 +23,7 @@ let passwordsCollection;
 async function startServer() {
   try {
     await client.connect();
+
     const db = client.db("keyops");
     passwordsCollection = db.collection("passwords");
 
@@ -27,7 +33,7 @@ async function startServer() {
       console.log(`🚀 Server running on port ${PORT}`);
     });
   } catch (err) {
-    console.error("❌ MongoDB connection failed:", err);
+    console.error("❌ MongoDB connection failed:", err.message);
     process.exit(1);
   }
 }
@@ -43,28 +49,17 @@ app.get("/", (req, res) => {
 
 // Get all passwords
 app.get("/passwords", async (req, res) => {
-  if (!passwordsCollection) {
-    return res.status(503).json({ error: "Database not ready" });
-  }
-
   try {
     const data = await passwordsCollection.find({}).toArray();
     res.json(data);
   } catch (err) {
-    console.error("❌ GET /passwords failed:", err);
-    res.status(500).json({
-      error: "Failed to fetch passwords",
-      details: err.message,
-    });
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch passwords" });
   }
 });
 
 // Add password
 app.post("/passwords", async (req, res) => {
-  if (!passwordsCollection) {
-    return res.status(503).json({ error: "Database not ready" });
-  }
-
   try {
     const { website, username, password } = req.body;
 
@@ -72,33 +67,10 @@ app.post("/passwords", async (req, res) => {
       return res.status(400).json({ error: "All fields required" });
     }
 
-    await passwordsCollection.insertOne({
-      website,
-      username,
-      password,
-    });
-
+    await passwordsCollection.insertOne({ website, username, password });
     res.json({ success: true });
   } catch (err) {
-    console.error("❌ POST /passwords failed:", err);
+    console.error(err);
     res.status(500).json({ error: "Failed to save password" });
-  }
-});
-
-// Delete password
-app.delete("/passwords/:id", async (req, res) => {
-  if (!passwordsCollection) {
-    return res.status(503).json({ error: "Database not ready" });
-  }
-
-  try {
-    await passwordsCollection.deleteOne({
-      _id: new ObjectId(req.params.id),
-    });
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("❌ DELETE /passwords failed:", err);
-    res.status(500).json({ error: "Failed to delete password" });
   }
 });
