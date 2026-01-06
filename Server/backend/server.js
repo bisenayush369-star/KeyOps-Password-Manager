@@ -16,12 +16,16 @@ if (!process.env.MONGO_URI) {
   process.exit(1);
 }
 
-const client = new MongoClient(process.env.MONGO_URI);
+const client = new MongoClient(process.env.MONGO_URI, {
+  serverSelectionTimeoutMS: 5000,
+});
 let passwordsCollection;
 
 // ===== START SERVER AFTER DB CONNECT =====
 async function startServer() {
   try {
+    console.log("🔄 Connecting to MongoDB...");
+
     await client.connect();
 
     const db = client.db("keyops");
@@ -32,8 +36,9 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
+
   } catch (err) {
-    console.error("❌ MongoDB connection failed:", err.message);
+    console.error("❌ MongoDB connection failed:", err);
     process.exit(1);
   }
 }
