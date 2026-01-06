@@ -4,28 +4,27 @@ const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
+
+// ✅ IMPORTANT: Render PORT
 const PORT = process.env.PORT || 3000;
 
 // ===== MIDDLEWARE =====
-app.use(cors({ origin: "*" }));
+app.use(cors());
 app.use(express.json());
 
 // ===== MONGODB =====
 if (!process.env.MONGO_URI) {
-  console.error("❌ MONGO_URI is missing");
+  console.error("❌ MONGO_URI not found in env");
   process.exit(1);
 }
 
-const client = new MongoClient(process.env.MONGO_URI, {
-  serverSelectionTimeoutMS: 5000,
-});
+const client = new MongoClient(process.env.MONGO_URI);
 let passwordsCollection;
 
 // ===== START SERVER AFTER DB CONNECT =====
 async function startServer() {
   try {
     console.log("🔄 Connecting to MongoDB...");
-
     await client.connect();
 
     const db = client.db("keyops");
@@ -36,7 +35,6 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
-
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err);
     process.exit(1);
@@ -46,14 +44,15 @@ async function startServer() {
 startServer();
 
 // ===== ROUTES =====
-
-// Health check
 app.get("/", (req, res) => {
   res.send("Server is running 🚀");
 });
 
-// Get all passwords
 app.get("/passwords", async (req, res) => {
+  if (!passwordsCollection) {
+    return res.status(503).json({ error: "Database not ready" });
+  }
+
   try {
     const data = await passwordsCollection.find({}).toArray();
     res.json(data);
@@ -63,7 +62,6 @@ app.get("/passwords", async (req, res) => {
   }
 });
 
-// Add password
 app.post("/passwords", async (req, res) => {
   try {
     const { website, username, password } = req.body;
@@ -75,7 +73,6 @@ app.post("/passwords", async (req, res) => {
     await passwordsCollection.insertOne({ website, username, password });
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to save password" });
   }
 });
