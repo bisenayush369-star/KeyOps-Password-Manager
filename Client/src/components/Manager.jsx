@@ -101,6 +101,19 @@ function Manager() {
     });
   };
 
+// ===== COPY TO CLIPBOARD =====
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("📋 Copied to clipboard");
+    console.log("📋 Copied:", text);
+  } catch (err) {
+    console.error("❌ Copy failed", err);
+    showToast("❌ Copy failed");
+  }
+};
+
+
   // ===== UI =====
   return (
     <section className="w-full flex justify-center">
