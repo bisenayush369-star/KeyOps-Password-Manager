@@ -20,15 +20,24 @@ function Manager() {
   }, []);
 
   const loadPasswords = async () => {
-    try {
-      const res = await fetch("https://keyops-password-manager.onrender.com/passwords");
-      const data = await res.json();
-      setPasswords(data);
-      console.log(`📦 Loaded ${data.length} passwords from MongoDB`);
-    } catch (err) {
-      console.error("❌ Failed to load passwords", err);
+  try {
+    const res = await fetch("https://keyops-password-manager.onrender.com/passwords");
+    const data = await res.json();
+
+    // 🔥 THIS IS THE IMPORTANT FIX
+    if (!Array.isArray(data)) {
+      console.error("Backend did not return array:", data);
+      setPasswords([]);
+      return;
     }
-  };
+
+    setPasswords(data);
+    console.log("Loaded passwords:", data.length);
+  } catch (err) {
+    console.error("Failed to load passwords", err);
+    setPasswords([]);
+  }
+};
 
   // ===== TOAST =====
   const showToast = (message) => {
