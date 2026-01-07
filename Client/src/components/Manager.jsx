@@ -60,7 +60,9 @@ function Manager() {
     console.log("💾 Saving password:", form);
 
     try {
-      const res = await fetch("http://localhost:3000/passwords", {
+      const res = await fetch(
+  "https://keyops-password-manager.onrender.com/passwords",
+  {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -88,7 +90,9 @@ function Manager() {
     console.log("🗑️ Deleting password:", id);
 
     try {
-      await fetch(`http://localhost:3000/passwords/${id}`, {
+      await fetch(
+  `https://keyops-password-manager.onrender.com/passwords/${id}`,
+  {
         method: "DELETE",
       });
 

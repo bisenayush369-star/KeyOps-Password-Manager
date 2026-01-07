@@ -4,7 +4,24 @@ const { MongoClient, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
-app.use(cors());
+
+// 1️⃣ FIRST – body parser
+app.use(express.json());
+
+// 2️⃣ SECOND – CORS
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://key-ops.netlify.app",
+    ],
+    methods: ["GET", "POST", "DELETE"],
+    credentials: false,
+  })
+);
+
+// 3️⃣ THEN routes
+
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;

@@ -9,7 +9,7 @@ function Navbar() {
 
       {/* GitHub Button (white border, pill) */}
       <a
-        href="https://github.com/AyushdevX"
+        href="https://github.com/bisenayush369-star/KeyOps-Password-Manager"
         target="_blank"
         rel="noreferrer"
         className="flex items-center gap-2 border border-white text-white px-5 py-2 rounded-full hover:bg-purple-700 transition"
