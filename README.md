@@ -6,10 +6,8 @@ It stores passwords in MongoDB and syncs the UI in real time.
 ---
 
 ## 🚀 Live Links
-Frontend: https://YOUR-FRONTEND-LINK  
-Backend API: https://YOUR-BACKEND-LINK  
-GitHub Repo: https://github.com/YOUR_USERNAME/keyops  
-
+Frontend: https://key-ops.netlify.app  
+Backend API: https://keyops-password-manager.onrender.com   
 ---
 
 ## ✨ Features
