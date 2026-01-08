@@ -51,5 +51,5 @@ KEYOPS/
 
 ---
 
-## 👤 Author
+## 👨‍💻 Dev
 Ayush (AyushdevX)
