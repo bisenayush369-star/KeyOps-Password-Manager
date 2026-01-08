@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
+const API = import.meta.env.VITE_API_URL;
+// const [editingId, setEditingId] = useState(null);
 
 function Manager() {
-  // ===== STATES =====
   const [form, setForm] = useState({
     website: "",
     username: "",
     password: "",
   });
 
+  const [editingId, setEditingId] = useState(null);
   const [passwords, setPasswords] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
+  
 
   // 🔔 TOASTS
   const [toasts, setToasts] = useState([]);
@@ -19,23 +22,19 @@ function Manager() {
     loadPasswords();
   }, []);
 
-  const loadPasswords = async () => {
+const loadPasswords = async () => {
   try {
-    const res = await fetch("https://keyops-password-manager.onrender.com/passwords");
-    const data = await res.json();
+    const res = await fetch(`${API}/passwords`);
 
-    // 🔥 THIS IS THE IMPORTANT FIX
-    if (!Array.isArray(data)) {
-      console.error("Backend did not return array:", data);
-      setPasswords([]);
-      return;
+    if (!res.ok) {
+      throw new Error("Failed to fetch");
     }
 
+    const data = await res.json();
     setPasswords(data);
-    console.log("Loaded passwords:", data.length);
   } catch (err) {
-    console.error("Failed to load passwords", err);
-    setPasswords([]);
+    console.error("❌ Failed to load passwords", err);
+    showToast("❌ Failed to load passwords");
   }
 };
 
@@ -50,69 +49,49 @@ function Manager() {
   };
 
   // ===== SAVE PASSWORD =====
-  const savePassword = async () => {
-    if (!form.website || !form.username || !form.password) {
-      console.warn("⚠️ Please fill all fields");
-      showToast("❌ All fields are required");
-      return;
-    }
+ const savePassword = async () => {
+  if (!form.website || !form.username || !form.password) {
+    showToast("❌ All fields are required");
+    return;
+  }
 
-    console.log("💾 Saving password:", form);
+  try {
+    const url = editingId
+      ? `${API}/passwords/${editingId}`
+      : `${API}/passwords`;
 
-    try {
-      const res = await fetch(
-  "https://keyops-password-manager.onrender.com/passwords",
-  {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+    const method = editingId ? "PUT" : "POST";
 
-      const data = await res.json();
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
 
-      if (data.success) {
-        console.log("✅ Password saved successfully");
-        showToast("✅ Password saved");
-        setForm({ website: "", username: "", password: "" });
-        loadPasswords();
-      } else {
-        console.error("❌ Server error:", data);
-        showToast("❌ Save failed");
-      }
-    } catch (err) {
-      console.error("❌ Mongo save failed", err);
-      showToast("❌ Server error");
-    }
-  };
+    const data = await res.json();
 
-  // ===== DELETE PASSWORD =====
-  const deletePassword = async (id) => {
-    console.log("🗑️ Deleting password:", id);
+    if (!res.ok) throw new Error(data.error || "Save failed");
 
-    try {
-      await fetch(
-  `https://keyops-password-manager.onrender.com/passwords/${id}`,
-  {
-        method: "DELETE",
-      });
+    showToast(editingId ? "✏️ Password updated" : "✅ Password saved");
 
-      console.log("✅ Password deleted");
-      showToast("🗑️ Password deleted");
-      loadPasswords();
-    } catch (err) {
-      console.error("❌ Delete failed", err);
-      showToast("❌ Delete failed");
-    }
-  };
+    setForm({ website: "", username: "", password: "" });
+    setEditingId(null); // 🔥 THIS IS CRITICAL
+    loadPasswords();
+  } catch (err) {
+    console.error(err);
+    showToast("❌ Server error");
+  }
+};
 
   // ===== EDIT (UI only, future-ready) =====
   const editPassword = (item) => {
-    setForm({
-      website: item.website,
-      username: item.username,
-      password: item.password,
-    });
-  };
+  setForm({
+    website: item.website,
+    username: item.username,
+    password: item.password,
+  });
+  setEditingId(item._id);
+};
 
 // ===== COPY TO CLIPBOARD =====
 const copyToClipboard = async (text) => {
@@ -126,6 +105,20 @@ const copyToClipboard = async (text) => {
   }
 };
 
+// ===== DELETE PASSWORD =====
+const deletePassword = async (id) => {
+  try {
+    await fetch(`${API}/passwords/${id}`, {
+  method: "DELETE",
+});
+
+    showToast("🗑 Password deleted");
+    loadPasswords();
+  } catch (err) {
+    console.error("❌ Delete failed", err);
+    showToast("❌ Delete failed");
+  }
+};
 
   // ===== UI =====
   return (
@@ -148,30 +141,31 @@ const copyToClipboard = async (text) => {
           className="w-full rounded-full border border-purple-400 bg-white px-6 py-2 mb-4 outline-none"
         />
 
-        {/* Username + Password */}
-        <div className="flex gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Enter Username"
-            value={form.username}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
-            className="flex-1 rounded-full border border-purple-400 bg-white px-6 py-2 outline-none"
-          />
+       {/* Username + Password */}
+<div className="flex flex-col sm:flex-row gap-4 mb-6">
+  {/* Username */}
+  <input
+    type="text"
+    placeholder="Enter Username"
+    value={form.username}
+    onChange={(e) => setForm({ ...form, username: e.target.value })}
+    className="w-full rounded-full border border-purple-400 bg-white px-4 py-2"
+  />
 
-          <div className="relative flex-1">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter Password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full rounded-full border border-purple-400 bg-white px-6 py-2 pr-12 outline-none"
-            />
-
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2"
-            >
+  {/* Password */}
+  <div className="relative w-full">
+    <input
+      type={showPassword ? "text" : "password"}
+      placeholder="Enter Password"
+      value={form.password}
+      onChange={(e) => setForm({ ...form, password: e.target.value })}
+      className="w-full rounded-full border border-purple-400 bg-white px-4 py-2 pr-10"
+    />
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      className="absolute right-3 top-1/2 -translate-y-1/2"
+    >
               <img
                 src={showPassword ? "/icon/why.svg" : "/icon/eye.svg"}
                 alt="toggle password"

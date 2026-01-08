@@ -3,9 +3,12 @@ function Navbar() {
     <nav className="h-16 bg-purple-900 text-white px-10 flex items-center justify-between">
       
       {/* Logo */}
-      <h1 className="text-2xl font-bold text-purple-300">
-        &lt;Key<span className="text-white">Ops</span> /&gt;
-      </h1>
+      <h1
+  onClick={() => window.location.reload()}
+  className="text-2xl font-bold text-purple-300 cursor-pointer select-none"
+>
+  &lt;Key<span className="text-white">Ops</span> /&gt;
+</h1>
 
       {/* GitHub Button (white border, pill) */}
       <a

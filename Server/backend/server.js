@@ -15,7 +15,7 @@ app.use(
       "http://localhost:5173",
       "https://key-ops.netlify.app",
     ],
-    methods: ["GET", "POST", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: false,
   })
 );
@@ -65,6 +65,30 @@ async function start() {
         res.status(500).json({ error: "Failed to save password" });
       }
     });
+
+    app.put("/passwords/:id", async (req, res) => {
+  try {
+    const { website, username, password } = req.body;
+
+    if (!ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid ID" });
+    }
+
+    const result = await passwordsCollection.updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: { website, username, password } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: "Password not found" });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("PUT ERROR:", err);
+    res.status(500).json({ error: "Update failed" });
+  }
+});
 
     app.delete("/passwords/:id", async (req, res) => {
       try {
