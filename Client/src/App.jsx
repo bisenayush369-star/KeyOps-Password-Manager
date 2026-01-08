@@ -16,7 +16,7 @@ function App() {
       </div>
 
       {/* Footer */}
-      <div className="flex-shrink-0 py-3 text-center text-xs bg-slate-900 text-slate-200">
+      <div className="flex-shrink-0 py-2 text-center text-xs bg-slate-900 text-slate-200">
         <div className="flex flex-col items-center justify-center gap-1">
           
           {/* KeyOps on top */}
