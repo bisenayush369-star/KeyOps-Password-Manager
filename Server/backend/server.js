@@ -42,32 +42,36 @@ app.get("/", (req, res) => {
    ROUTES (SAFE)
 ====================== */
 app.get("/passwords", async (req, res) => {
+  // If DB not ready yet, return empty list
   if (!passwordsCollection) {
-    return res.status(503).json({ message: "Database not ready" });
+    return res.json([]);
   }
 
   try {
     const passwords = await passwordsCollection.find({}).toArray();
     res.json(passwords);
   } catch (err) {
-    console.error("GET /passwords error:", err);
-    res.status(500).json({ error: "Failed to fetch passwords" });
+    console.error("Fetch failed:", err);
+    res.status(500).json({ message: "Failed to fetch passwords" });
   }
 });
 
 app.post("/passwords", async (req, res) => {
   if (!passwordsCollection) {
-    return res.status(503).json({ message: "Database not ready" });
+    return res.status(503).json({
+      message: "Database not ready, try again"
+    });
   }
 
   try {
-    await passwordsCollection.insertOne(req.body);
-    res.json({ success: true });
+    const result = await passwordsCollection.insertOne(req.body);
+    res.status(201).json(result);
   } catch (err) {
-    console.error("POST /passwords error:", err);
-    res.status(500).json({ error: "Failed to save password" });
+    console.error("Save failed:", err);
+    res.status(500).json({ message: "Save failed" });
   }
 });
+
 
 /* ======================
    START SERVER FIRST
