@@ -49,34 +49,27 @@ const loadPasswords = async () => {
   };
 
   // ===== SAVE PASSWORD =====
- const savePassword = async () => {
-  if (!form.website || !form.username || !form.password) {
-    showToast("❌ All fields are required");
-    return;
-  }
-
+const savePassword = async () => {
   try {
-    const url = editingId
-      ? `${API}/passwords/${editingId}`
-      : `${API}/passwords`;
-
-    const method = editingId ? "PUT" : "POST";
-
-    const res = await fetch(url, {
-      method,
+    const res = await fetch(`${API}/passwords`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
 
-    const data = await res.json();
+    if (res.status === 503) {
+      showToast("⏳ Server is waking up, try again in 5 seconds");
+      return;
+    }
 
-    if (!res.ok) throw new Error(data.error || "Save failed");
+    if (!res.ok) {
+      throw new Error("Save failed");
+    }
 
-    showToast(editingId ? "✏️ Password updated" : "✅ Password saved");
-
+    await loadPasswords();
     setForm({ website: "", username: "", password: "" });
-    setEditingId(null); // 🔥 THIS IS CRITICAL
-    loadPasswords();
+    showToast("✅ Password saved");
+
   } catch (err) {
     console.error(err);
     showToast("❌ Server error");
