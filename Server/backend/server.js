@@ -14,7 +14,6 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://key-ops.netlify.app",
-      "https://keyops-password-manager.onrender.com"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: false,
