@@ -53,3 +53,9 @@ KEYOPS/
 
 ## 👨‍💻 Dev
 Ayush (AyushdevX)
+
+---
+
+## ⭐ Support
+
+If you like this project, give it a star on GitHub.
