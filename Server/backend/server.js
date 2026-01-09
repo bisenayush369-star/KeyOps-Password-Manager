@@ -38,46 +38,94 @@ app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
-/* ======================
-   ROUTES (SAFE)
-====================== */
-app.get("/passwords", async (req, res) => {
-  // If DB not ready yet, return empty list
-  if (!passwordsCollection) {
-    return res.json([]);
-  }
-
-  try {
-    const passwords = await passwordsCollection.find({}).toArray();
-    res.json(passwords);
-  } catch (err) {
-    console.error("Fetch failed:", err);
-    res.status(500).json({ message: "Failed to fetch passwords" });
-  }
-});
-
+// ===== CREATE PASSWORD =====
 app.post("/passwords", async (req, res) => {
-  if (!passwordsCollection) {
-    return res.status(503).json({
-      message: "Database not ready, try again"
-    });
-  }
-
   try {
-    const result = await passwordsCollection.insertOne(req.body);
-    res.status(201).json(result);
+    if (!passwordsCollection) {
+      return res.status(503).json({ message: "Database not ready" });
+    }
+
+    const { website, username, password } = req.body;
+
+    if (!website || !username || !password) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+
+    const result = await passwordsCollection.insertOne({
+      website,
+      username,
+      password,
+      createdAt: new Date(),
+    });
+
+    res.status(201).json({
+      _id: result.insertedId,
+      website,
+      username,
+      password,
+    });
   } catch (err) {
     console.error("Save failed:", err);
     res.status(500).json({ message: "Save failed" });
   }
 });
 
-
 /* ======================
-   START SERVER FIRST
+   ROUTES (SAFE)
 ====================== */
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.put("/passwords/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID" });
+    }
+
+    await passwordsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: req.body }
+    );
+
+    res.json({ message: "Updated" });
+  } catch (err) {
+    console.error("Update failed:", err);
+    res.status(500).json({ message: "Update failed" });
+  }
+});
+// ===== GET ALL PASSWORDS =====
+app.get("/passwords", async (req, res) => {
+  try {
+    const passwords = await passwordsCollection.find({}).toArray();
+    res.json(passwords);
+  } catch (err) {
+    console.error("Load failed:", err);
+    res.status(500).json({ message: "Load failed" });
+  }
+});
+
+
+// ===== DELETE PASSWORD =====
+app.delete("/passwords/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID" });
+    }
+
+    const result = await passwordsCollection.deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Password not found" });
+    }
+
+    res.json({ message: "Password deleted successfully" });
+  } catch (err) {
+    console.error("Delete failed:", err);
+    res.status(500).json({ message: "Delete failed" });
+  }
 });
 
 /* ======================
@@ -93,10 +141,17 @@ async function connectDB() {
     passwordsCollection = db.collection("passwords");
 
     console.log("MongoDB connected ✅");
+
+    // ✅ START SERVER ONLY AFTER DB IS READY
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+
   } catch (err) {
     console.error("MongoDB connection failed:", err);
-    // ❌ DO NOT exit — keep server alive on Render
+    process.exit(1); // local dev → fail fast
   }
 }
 
 connectDB();
+

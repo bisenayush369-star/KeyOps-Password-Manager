@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
+
 const API = import.meta.env.VITE_API_URL;
-// const [editingId, setEditingId] = useState(null);
 
 function Manager() {
   const [form, setForm] = useState({
@@ -12,29 +12,29 @@ function Manager() {
   const [editingId, setEditingId] = useState(null);
   const [passwords, setPasswords] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
-  
+  const [toasts, setToasts] = useState([]);
+  // const [serverWaking, setServerWaking] = useState(false);
 
   // 🔔 TOASTS
-  const [toasts, setToasts] = useState([]);
+  // const [toasts, setToasts] = useState([]);
 
   // ===== LOAD PASSWORDS =====
-  useEffect(() => {
-    loadPasswords();
-  }, []);
+ useEffect(() => {
+  loadPasswords();
+}, []);
 
 const loadPasswords = async () => {
   try {
     const res = await fetch(`${API}/passwords`);
 
     if (!res.ok) {
-      throw new Error("Failed to fetch");
+      throw new Error("Failed to load passwords");
     }
 
     const data = await res.json();
     setPasswords(data);
   } catch (err) {
-    console.error("❌ Failed to load passwords", err);
-    showToast("❌ Failed to load passwords");
+    console.warn("Load passwords failed:", err);
   }
 };
 
@@ -50,34 +50,55 @@ const loadPasswords = async () => {
 
   // ===== SAVE PASSWORD =====
 const savePassword = async () => {
+  if (!form.website || !form.username || !form.password) {
+    showToast("⚠️ Fill all fields");
+    return;
+  }
+
   try {
-    const res = await fetch(`${API}/passwords`, {
-      method: "POST",
+    const url = editingId
+      ? `${API}/passwords/${editingId}`
+      : `${API}/passwords`;
+
+    const method = editingId ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
 
-    if (res.status === 503) {
-      showToast("⏳ Server is waking up, try again in 5 seconds");
-      return;
-    }
-
     if (!res.ok) {
-      throw new Error("Save failed");
+      const text = await res.text();
+      throw new Error(text);
     }
 
-    await loadPasswords();
     setForm({ website: "", username: "", password: "" });
-    showToast("✅ Password saved");
+    setEditingId(null);
+    await loadPasswords();
 
+    showToast(
+      editingId ? "✏️ Password updated" : "✅ Password saved"
+    );
   } catch (err) {
-    console.error(err);
-    showToast("❌ Server error");
+    console.error("Save error:", err);
+    showToast("❌ Save failed");
   }
 };
 
-  // ===== EDIT (UI only, future-ready) =====
-  const editPassword = (item) => {
+// ===== COPY TO CLIPBOARD =====
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("📋 Copied");
+  } catch (err) {
+    console.error("Copy failed:", err);
+    showToast("❌ Copy failed");
+  }
+};
+
+// ===== EDIT PASSWORD =====
+const editPassword = (item) => {
   setForm({
     website: item.website,
     username: item.username,
@@ -86,29 +107,27 @@ const savePassword = async () => {
   setEditingId(item._id);
 };
 
-// ===== COPY TO CLIPBOARD =====
-const copyToClipboard = async (text) => {
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast("📋 Copied to clipboard");
-    console.log("📋 Copied:", text);
-  } catch (err) {
-    console.error("❌ Copy failed", err);
-    showToast("❌ Copy failed");
-  }
-};
-
+// ===== DELETE PASSWORD =====
 // ===== DELETE PASSWORD =====
 const deletePassword = async (id) => {
   try {
-    await fetch(`${API}/passwords/${id}`, {
-  method: "DELETE",
-});
+    const res = await fetch(`${API}/passwords/${id}`, {
+      method: "DELETE",
+    });
 
-    showToast("🗑 Password deleted");
-    loadPasswords();
+    if (!res.ok) {
+      throw new Error("Delete failed");
+    }
+
+    // ✅ Update UI immediately
+    setPasswords((prev) => prev.filter((item) => item._id !== id));
+
+    // ✅ SUCCESS toast (ONLY here)
+    showToast("🗑️ Password deleted");
   } catch (err) {
-    console.error("❌ Delete failed", err);
+    console.error("Delete error:", err);
+
+    // ❌ ERROR toast ONLY if request fails
     showToast("❌ Delete failed");
   }
 };
