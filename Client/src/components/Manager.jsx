@@ -49,41 +49,48 @@ const loadPasswords = async () => {
   };
 
   // ===== SAVE PASSWORD =====
-const savePassword = async () => {
+// ===== SAVE PASSWORD (FINAL FIXED VERSION) =====
+const savePassword = () => {
   if (!form.website || !form.username || !form.password) {
     showToast("⚠️ Fill all fields");
     return;
   }
 
-  try {
-    const url = editingId
-      ? `${API}/passwords/${editingId}`
-      : `${API}/passwords`;
+  // 1️⃣ Create temporary password (for instant UI)
+  const tempPassword = {
+    _id: Date.now(), // temporary ID
+    website: form.website,
+    username: form.username,
+    password: form.password,
+  };
 
-    const method = editingId ? "PUT" : "POST";
+  // 2️⃣ Update UI instantly
+  setPasswords((prev) => [tempPassword, ...prev]);
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+  // 3️⃣ Normal user message
+  showToast("✅ Password saved");
+
+  // 4️⃣ Clear form
+  setForm({ website: "", username: "", password: "" });
+  setEditingId(null);
+
+  // 5️⃣ Send to backend (background sync)
+  fetch(`${API}/passwords`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      website: tempPassword.website,
+      username: tempPassword.username,
+      password: tempPassword.password,
+    }),
+  })
+    .then((res) => res.json())
+    .then((saved) => {
+      // 6️⃣ Replace temp password with real MongoDB password
+      setPasswords((prev) =>
+        prev.map((p) => (p._id === tempPassword._id ? saved : p))
+      );
     });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text);
-    }
-
-    setForm({ website: "", username: "", password: "" });
-    setEditingId(null);
-    await loadPasswords();
-
-    showToast(
-      editingId ? "✏️ Password updated" : "✅ Password saved"
-    );
-  } catch (err) {
-    console.error("Save error:", err);
-    showToast("❌ Save failed");
-  }
 };
 
 // ===== COPY TO CLIPBOARD =====
