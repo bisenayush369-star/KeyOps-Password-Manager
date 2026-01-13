@@ -114,29 +114,18 @@ const editPassword = (item) => {
   setEditingId(item._id);
 };
 
-// ===== DELETE PASSWORD =====
-// ===== DELETE PASSWORD =====
-const deletePassword = async (id) => {
-  try {
-    const res = await fetch(`${API}/passwords/${id}`, {
-      method: "DELETE",
-    });
+// ===== DELETE PASSWORD (OPTIMISTIC UI - FINAL) =====
+const deletePassword = (id) => {
+  // 1️⃣ Remove from UI instantly
+  setPasswords((prev) => prev.filter((item) => item._id !== id));
 
-    if (!res.ok) {
-      throw new Error("Delete failed");
-    }
+  // 2️⃣ Normal user message
+  showToast("🗑️ Password deleted");
 
-    // ✅ Update UI immediately
-    setPasswords((prev) => prev.filter((item) => item._id !== id));
-
-    // ✅ SUCCESS toast (ONLY here)
-    showToast("🗑️ Password deleted");
-  } catch (err) {
-    console.error("Delete error:", err);
-
-    // ❌ ERROR toast ONLY if request fails
-    showToast("❌ Delete failed");
-  }
+  // 3️⃣ Send delete request in background
+  fetch(`${API}/passwords/${id}`, {
+    method: "DELETE",
+  });
 };
 
   // ===== UI =====
