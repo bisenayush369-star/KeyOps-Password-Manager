@@ -48,60 +48,74 @@ const loadPasswords = async () => {
     }, 3000);
   };
 
-  // ===== SAVE PASSWORD =====
-// ===== SAVE PASSWORD (FINAL FIXED VERSION) =====
+// ===== SAVE PASSWORD (ADD + EDIT FIXED) =====
 const savePassword = () => {
   if (!form.website || !form.username || !form.password) {
     showToast("⚠️ Fill all fields");
     return;
   }
 
-  // 1️⃣ Create temporary password (for instant UI)
+  /* ======================
+     ✏️ EDIT MODE
+  ====================== */
+  if (editingId) {
+    // 1️⃣ Update UI instantly (replace, not add)
+    setPasswords((prev) =>
+      prev.map((item) =>
+        item._id === editingId
+          ? { ...item, ...form }
+          : item
+      )
+    );
+
+    showToast("✏️ Password updated");
+
+    // 2️⃣ Clear form
+    setForm({ website: "", username: "", password: "" });
+    setEditingId(null);
+
+    // 3️⃣ Sync with backend (PUT)
+    fetch(`${API}/passwords/${editingId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+
+    return; // ⛔ STOP HERE
+  }
+
+  /* ======================
+     ➕ ADD MODE
+  ====================== */
   const tempPassword = {
-    _id: Date.now(), // temporary ID
+    _id: Date.now(), // temp id
     website: form.website,
     username: form.username,
     password: form.password,
   };
 
-  // 2️⃣ Update UI instantly
+  // 4️⃣ Add instantly
   setPasswords((prev) => [tempPassword, ...prev]);
-
-  // 3️⃣ Normal user message
   showToast("✅ Password saved");
 
-  // 4️⃣ Clear form
+  // 5️⃣ Clear form
   setForm({ website: "", username: "", password: "" });
-  setEditingId(null);
 
-  // 5️⃣ Send to backend (background sync)
+  // 6️⃣ Backend save (POST)
   fetch(`${API}/passwords`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      website: tempPassword.website,
-      username: tempPassword.username,
-      password: tempPassword.password,
-    }),
+    body: JSON.stringify(form),
   })
     .then((res) => res.json())
     .then((saved) => {
-      // 6️⃣ Replace temp password with real MongoDB password
+      // replace temp with real
       setPasswords((prev) =>
-        prev.map((p) => (p._id === tempPassword._id ? saved : p))
+        prev.map((p) =>
+          p._id === tempPassword._id ? saved : p
+        )
       );
     });
-};
-
-// ===== COPY TO CLIPBOARD =====
-const copyToClipboard = async (text) => {
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast("📋 Copied");
-  } catch (err) {
-    console.error("Copy failed:", err);
-    showToast("❌ Copy failed");
-  }
 };
 
 // ===== EDIT PASSWORD =====
