@@ -2,15 +2,26 @@ function Navbar() {
   return (
     <nav className="h-16 bg-purple-900 text-white px-10 flex items-center justify-between">
       
-      {/* Logo */}
-      <h1
-  onClick={() => window.location.reload()}
-  className="text-2xl font-bold text-purple-300 cursor-pointer select-none"
->
-  &lt;Key<span className="text-white">Ops</span> /&gt;
-</h1>
+      {/* Logo + Lordicon */}
+      <div
+        onClick={() => window.location.reload()}
+        className="flex items-center gap-2 cursor-pointer select-none"
+      >
+        {/* Lordicon */}
+        <lord-icon
+          src="https://cdn.lordicon.com/medpcfcy.json"
+          trigger="hover"
+          colors="primary:#c084fc,secondary:#ffffff"
+          style={{ width: "28px", height: "28px" }}
+        ></lord-icon>
 
-      {/* GitHub Button (white border, pill) */}
+        {/* KeyOps Text */}
+        <h1 className="text-2xl font-bold text-purple-300">
+          &lt;Key<span className="text-white">Ops</span> /&gt;
+        </h1>
+      </div>
+
+      {/* GitHub Button */}
       <a
         href="https://github.com/bisenayush369-star/KeyOps-Password-Manager"
         target="_blank"
